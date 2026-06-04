@@ -1,0 +1,94 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>注文確認</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <h1>注文確認</h1>
+
+        <!-- 画像 -->
+        <img id="menuImage" src="" alt="">
+
+        <!-- メニュー名 -->
+        <p id="selectedMenu"></p>
+
+        <!-- 数量 -->
+        <div class="quantity">
+            <button onclick="decrease()">−</button>
+            <span id="count">1</span>
+            <button onclick="increase()">＋</button>
+        </div>
+
+        <!-- 注文 -->
+        <button onclick="finishOrder()">注文確定</button>
+    </div>
+
+    <script>
+        // 表示
+        document.getElementById("selectedMenu").innerText =
+            "選択されたメニュー：" + localStorage.getItem("menu");
+
+        document.getElementById("menuImage").src =
+            localStorage.getItem("image");
+
+        // 数量
+        let count = 1;
+
+        function increase() {
+            count++;
+            document.getElementById("count").innerText = count;
+        }
+
+        function decrease() {
+            if (count > 1) {
+                count--;
+                document.getElementById("count").innerText = count;
+            }
+        }
+
+        // 送信
+        {
+            <script>
+
+                function finishOrder() {
+
+        const menu = localStorage.getItem("menu");
+
+                fetch("https://script.google.com/macros/s/AKfycbyXUPI6nzM7LrFzyJbuoXV65ti0jfrnwjuRg_WDaaUa8fFaq6gQJpASl3kC-UiK4GQw/exec", {
+                    method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+            },
+                body: JSON.stringify({
+                    menu: menu,
+                quantity: count
+            })
+        })
+
+        .then(res => {
+                    console.log("ステータス:", res.status);
+                return res.text();
+        })
+
+        .then(data => {
+                    console.log("GAS応答:", data);
+
+                alert("予約完了！");
+                window.location.href = "index.html";
+        })
+
+        .catch(error => {
+                    console.error(error);
+                alert("送信エラー: " + error.message);
+        });
+
+}
+
+    </script>
+
+</body>
+</html>

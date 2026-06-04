@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メニュー一覧</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="page-title">
+        <h1>メニュー一覧</h1>
+    </div>
+
+    <div class="container">
+    </div>
+
+    <script>
+
+        const url = "https://script.google.com/macros/s/AKfycbyXUPI6nzM7LrFzyJbuoXV65ti0jfrnwjuRg_WDaaUa8fFaq6gQJpASl3kC-UiK4GQw/exec";
+
+        fetch(url)
+            .then(res => res.json())
+
+            .then(data => {
+
+                console.log(data);
+
+                const container = document.querySelector(".container");
+
+                data.forEach(item => {
+
+                    const card = document.createElement("div");
+                    card.className = "card";
+
+                    const name = item.name;
+                    const stock = item.stock;
+                    const img = item.image.trim();
+
+                    let button = "";
+
+                    if (stock > 0) {
+                        button = `<button onclick="selectMenu('${name}','${img}')">選ぶ</button>`;
+                    } else {
+                        button = `<button disabled>売り切れ</button>`;
+                    }
+
+                    card.innerHTML = `
+                <img src="${img}" alt="">
+                <h2>${name}</h2>
+                <p>在庫：${stock}</p>
+                ${button}
+            `;
+
+                    container.appendChild(card);
+
+                });
+
+            })
+
+            .catch(error => {
+                console.error(error);
+                alert(
+                    "名前: " + error.name +
+                    "\nメッセージ: " + error.message
+                );
+            });
+
+        function selectMenu(menu, image) {
+            localStorage.setItem("menu", menu);
+            localStorage.setItem("image", image);
+
+            window.location.href = "order.html";
+        }
+
+    </script>
+
+</body>
+</html>

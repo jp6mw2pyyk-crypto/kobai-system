@@ -1,79 +1,232 @@
-﻿<!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>メニュー一覧</title>
-    <link rel="stylesheet" href="style.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #status {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #menuList {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .menu-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 2px 8px #00000015;
+            text-align: center;
+        }
+
+        .menu-card img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .menu-card h2 {
+            font-size: 20px;
+        }
+
+        .stock {
+            color: #444;
+        }
+
+        .select-button {
+            width: 100%;
+            min-height: 48px;
+            border: none;
+            border-radius: 8px;
+            background: #333;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        .select-button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        #retryButton {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+
+        .error {
+            color: #c0392b;
+        }
+    </style>
 </head>
 
 <body>
 
-    <div class="page-title">
-        <h1>メニュー一覧</h1>
-    </div>
+    <h1>お弁当メニュー</h1>
 
-    <div class="container">
-    </div>
+    <p id="status">メニューを読み込んでいます...</p>
+
+    <div id="menuList"></div>
+
+    <button id="retryButton" type="button" hidden>
+        もう一度読み込む
+    </button>
 
     <script>
+        // メニュー一覧を取得するGASのURL
+        const GAS_URL =
+            "https://script.google.com/macros/s/AKfycbyXUPI6nzM7LrFzyJbuoXV65ti0jfrnwjuRg_WDaaUa8fFaq6gQJpASl3kC-UiK4GQw/exec";
 
-        const url = "https://script.google.com/macros/s/AKfycbyXUPI6nzM7LrFzyJbuoXV65ti0jfrnwjuRg_WDaaUa8fFaq6gQJpASl3kC-UiK4GQw/exec";
+        const menuList = document.getElementById("menuList");
+        const statusText = document.getElementById("status");
+        const retryButton = document.getElementById("retryButton");
 
-        fetch(url)
-            .then(res => res.json())
+        // メニュー一覧を取得
+        async function loadMenus() {
+            menuList.replaceChildren();
+            statusText.textContent = "メニューを読み込んでいます...";
+            statusText.className = "";
+            retryButton.hidden = true;
 
-            .then(data => {
+            try {
+                const response = await fetch(GAS_URL);
 
-                console.log(data);
+                if (!response.ok) {
+                    throw new Error("通信エラー：" + response.status);
+                }
 
-                const container = document.querySelector(".container");
+                const menus = await response.json();
 
-                data.forEach(item => {
+                if (!Array.isArray(menus)) {
+                    throw new Error(
+                        "GASの応答がメニュー一覧の形式ではありません。"
+                    );
+                }
 
-                    const card = document.createElement("div");
-                    card.className = "card";
+                if (menus.length === 0) {
+                    statusText.textContent = "メニューが登録されていません。";
+                    return;
+                }
 
-                    const name = item.name;
-                    const stock = item.stock;
-                    const img = item.image.trim();
+                let displayedCount = 0;
 
-                    let button = "";
-
-                    if (stock > 0) {
-                        button = `<button onclick="selectMenu('${name}','${img}')">選ぶ</button>`;
-                    } else {
-                        button = `<button disabled>売り切れ</button>`;
+                menus.forEach(function (item) {
+                    // 商品名・在庫・画像URLの形式を確認
+                    if (
+                        !item ||
+                        typeof item.name !== "string" ||
+                        !item.name.trim() ||
+                        !Number.isFinite(Number(item.stock)) ||
+                        Number(item.stock) < 0
+                    ) {
+                        console.warn("形式が正しくないメニュー:", item);
+                        return;
                     }
 
-                    card.innerHTML = `
-                <img src="${img}" alt="">
-                <h2>${name}</h2>
-                <p>在庫：${stock}</p>
-                ${button}
-            `;
+                    const name = item.name.trim();
+                    const stock = Number(item.stock);
+                    const image = typeof item.image === "string"
+                        ? item.image.trim()
+                        : "";
 
-                    container.appendChild(card);
+                    const card = document.createElement("article");
+                    card.className = "menu-card";
 
+                    const title = document.createElement("h2");
+                    title.textContent = name;
+
+                    const stockText = document.createElement("p");
+                    stockText.className = "stock";
+                    stockText.textContent = "在庫：" + stock + "個";
+
+                    const imageElement = document.createElement("img");
+                    imageElement.alt = name;
+                    imageElement.loading = "lazy";
+
+                    if (image) {
+                        imageElement.src = image;
+                        imageElement.onerror = function () {
+                            imageElement.alt = "画像を読み込めません";
+                            imageElement.removeAttribute("src");
+                        };
+                    } else {
+                        imageElement.alt = "画像が登録されていません";
+                    }
+
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "select-button";
+                    button.textContent = stock > 0 ? "このメニューを選ぶ" : "売り切れ";
+                    button.disabled = stock <= 0;
+
+                    button.addEventListener("click", function () {
+                        // 選んだ商品情報を保存
+                        localStorage.setItem("menu", name);
+                        localStorage.setItem("image", image);
+
+                        // 注文確認画面へ移動
+                        window.location.href = "order.html";
+                    });
+
+                    card.appendChild(imageElement);
+                    card.appendChild(title);
+                    card.appendChild(stockText);
+                    card.appendChild(button);
+
+                    menuList.appendChild(card);
+                    displayedCount++;
                 });
 
-            })
+                if (displayedCount === 0) {
+                    statusText.textContent =
+                        "表示できるメニューがありません。GASのデータを確認してください。";
+                    statusText.className = "error";
+                } else {
+                    statusText.textContent =
+                        displayedCount + "件のメニューを表示しています。";
+                }
 
-            .catch(error => {
-                console.error(error);
-                alert(
-                    "名前: " + error.name +
-                    "\nメッセージ: " + error.message
-                );
-            });
+            } catch (error) {
+                console.error("メニュー取得エラー:", error);
 
-        function selectMenu(menu, image) {
-            localStorage.setItem("menu", menu);
-            localStorage.setItem("image", image);
+                statusText.textContent =
+                    "メニューを読み込めませんでした。GASのURLや通信設定を確認してください。";
 
-            window.location.href = "order.html";
+                statusText.className = "error";
+                retryButton.hidden = false;
+            }
         }
 
+        retryButton.addEventListener("click", loadMenus);
+
+        loadMenus();
     </script>
 
 </body>
